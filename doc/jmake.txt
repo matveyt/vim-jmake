@@ -1,0 +1,29 @@
+*jmake.txt*     Asynchronous make
+
+==============================================================================
+OVERVIEW                                                               *jmake*
+
+|jmake| is a plugin to run |'makeprg'| and populate quickfix list
+asynchronously. It was inspired by "asyncmake" by Yegappan Lakshmanan. But
+|jmake| supports both Vim (requires |+job|) and Neovim, and also both
+|quickfix| and |location-list|.
+
+==============================================================================
+COMMANDS                                                      *jmake-commands*
+
+:Make[!][?][arguments]                                                 *:Make*
+
+    Same as |:make| but runs asynchronously. The results are added to a
+    quickfix list.
+
+    If [!] is given then stops a pending job. If [?] is given then opens a
+    window to show the list of errors so far |:copen|.
+
+    See also |'makeprg'|, |'errorformat'| and |'makeencoding'|.
+
+:Lmake[!][?][arguments]                                               *:Lmake*
+
+    Same as |:Make| but uses location list instead of a quickfix list.
+
+==============================================================================
+ vim:tw=78:ts=8:noet:ft=help:norl:
