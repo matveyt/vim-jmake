@@ -11,4 +11,5 @@ Use whatever plugin manager to pull the master branch.
 Read `:help jmake`.
 
 ### License
+
 Distributed under the same terms as Vim itself. See `:help license`.
