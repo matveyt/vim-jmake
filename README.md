@@ -1,6 +1,6 @@
 ### Description
 
-This Vim plugin provides asynchcronous :Make and :Lmake commands.
+This Vim plugin provides asynchcronous :Make and :Grep commands.
 
 ### Download and Install
 

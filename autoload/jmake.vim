@@ -1,6 +1,6 @@
 " Vim plugin to run :make asynchronously
 " Maintainer:   matveyt
-" Last Change:  2020 Jun 22
+" Last Change:  2020 Sep 20
 " License:      VIM License
 " URL:          https://github.com/matveyt/vim-jmake
 
@@ -36,7 +36,7 @@ function s:iconv(expr, from) abort
     endif
 endfunction
 
-function s:qfopen(local, qfid, doau) abort
+function s:qfopen(local, name, qfid, doau) abort
     let l:ours = {'id': a:qfid, 'nr': 0}
     let l:curr = {'nr': 0}
     if a:local
@@ -50,14 +50,14 @@ function s:qfopen(local, qfid, doau) abort
             \ l:delta > 0 ? 'newer' : 'older', abs(l:delta))
     endif
     if a:doau
-        execute 'silent doautocmd <nomodeline> QuickFixCmdPost'
-            \ a:local ? 'lmake' : 'make'
+        execute 'silent doautocmd <nomodeline> QuickFixCmdPost' a:name
     endif
     execute a:local ? 'lopen' : 'copen'
 endfunction
 
-function s:jmake_alloc(winid) abort
+function s:jmake_alloc(name, winid) abort
     let l:jmake = {}
+    let l:jmake.name = (a:winid > 0 ? 'l' : '') . a:name
     let l:jmake.winid = a:winid
     let l:jmake.job = v:null
     let l:jmake.cmd = v:null
@@ -129,7 +129,7 @@ function s:jmake_on_exit(jmake, id, status, ...) abort
     let l:what = {}
     let l:what.id = a:jmake.qfid
     let l:what.efm = a:jmake.efm
-    let l:what.lines = [printf('[Make exited with code %d]', a:status)]
+    let l:what.lines = [printf('[Exited with code %d]', a:status)]
 
     if l:local
         if !win_gotoid(a:jmake.winid)
@@ -140,22 +140,20 @@ function s:jmake_on_exit(jmake, id, status, ...) abort
         call setqflist([], 'a', l:what)
     endif
 
-    if a:status != 0
-        call s:qfopen(l:local, a:jmake.qfid, v:true)
-    endif
+    call s:qfopen(l:local, a:jmake.name, a:jmake.qfid, v:true)
 endfunction
 
-function! jmake#run(local, ...) abort
+function! jmake#run(local, name, prg, efm, ...) abort
     if a:local
-        if !exists('w:jmake')
-            let w:jmake = s:jmake_alloc(win_getid())
+        if !exists('w:j'..a:name)
+            let w:j{a:name} = s:jmake_alloc(a:name, win_getid())
         endif
-        let l:jmake = w:jmake
+        let l:jmake = w:j{a:name}
     else
-        if !exists('s:jmake')
-            let s:jmake = s:jmake_alloc(0)
+        if !exists('s:j'..a:name)
+            let s:j{a:name} = s:jmake_alloc(a:name, 0)
         endif
-        let l:jmake = s:jmake
+        let l:jmake = s:j{a:name}
     endif
 
     let l:is_running = s:jmake_running(l:jmake)
@@ -165,29 +163,28 @@ function! jmake#run(local, ...) abort
         if l:is_running
             call s:jmake_stop(l:jmake)
         else
-            echo 'Make is not running'
+            echo a:name 'is not running'
         endif
         return
     elseif get(l:args, 0) is# '?' || l:is_running
         if l:jmake.qfid > 0
-            call s:qfopen(a:local, l:jmake.qfid, v:false)
+            call s:qfopen(a:local, l:jmake.name, l:jmake.qfid, v:false)
         else
-            echo 'Make nothing to see here... move along!'
+            echo 'Nothing to see here... move along!'
         endif
         return
     endif
 
-    execute 'silent doautocmd <nomodeline> QuickFixCmdPre'
-        \ a:local ? 'lmake' : 'make'
+    execute 'silent doautocmd <nomodeline> QuickFixCmdPre' l:jmake.name
 
     if &autowrite || &autowriteall
         silent! wall
     endif
 
-    if match(&makeprg, '\$\*') >= 0
-        let l:jmake.cmd = substitute(&makeprg, '\$\*', join(l:args), 'g')
+    if match(a:prg, '\$\*') >= 0
+        let l:jmake.cmd = substitute(a:prg, '\$\*', join(l:args), 'g')
     else
-        let l:jmake.cmd = &makeprg..' '..join(l:args)
+        let l:jmake.cmd = a:prg..' '..join(l:args)
     endif
     let l:jmake.cmd = expandcmd(l:jmake.cmd)
 
@@ -200,12 +197,12 @@ function! jmake#run(local, ...) abort
         let l:jmake.qfid = getqflist(l:what).id
     endif
 
-    let l:jmake.efm = &errorformat
+    let l:jmake.efm = a:efm
     let l:jmake.enc = &makeencoding
     let l:jmake.cwd = getcwd()
 
     if !s:jmake_start(l:jmake)
-        echo 'Making ['..l:jmake.cmd..'] failed'
+        echo 'Starting of ['..l:jmake.cmd..'] failed'
     endif
 endfunction
 
