@@ -1,6 +1,6 @@
 " Vim plugin to run :make asynchronously
 " Maintainer:   matveyt
-" Last Change:  2020 Sep 20
+" Last Change:  2020 Dec 13
 " License:      VIM License
 " URL:          https://github.com/matveyt/vim-jmake
 
@@ -69,14 +69,16 @@ function s:jmake_alloc(name, winid) abort
 endfunction
 
 function s:jmake_start(jmake) abort
+    let l:cmd = get(g:, 'jmake_no_shell') ? split(a:jmake.cmd) :
+        \ [&sh, &shcf, a:jmake.cmd]
     if has('nvim')
-        let a:jmake.job = jobstart(a:jmake.cmd, {
+        let a:jmake.job = jobstart(l:cmd, {
             \ 'on_stdout': funcref('s:jmake_on_data', [a:jmake]),
             \ 'on_stderr': funcref('s:jmake_on_data', [a:jmake]),
             \ 'on_exit': funcref('s:jmake_on_exit', [a:jmake])
         \ })
     elseif has('job')
-        let a:jmake.job = job_start(a:jmake.cmd, {
+        let a:jmake.job = job_start(l:cmd, {
             \ 'out_cb': funcref('s:jmake_on_data', [a:jmake]),
             \ 'err_cb': funcref('s:jmake_on_data', [a:jmake]),
             \ 'exit_cb': funcref('s:jmake_on_exit', [a:jmake])
@@ -88,7 +90,7 @@ endfunction
 
 function s:jmake_running(jmake) abort
     if empty(a:jmake.job)
-        return v:false
+        return 0
     elseif has('nvim')
         return jobwait([a:jmake.job], 0)[0] == -1
     elseif has('job')
@@ -143,7 +145,7 @@ function s:jmake_on_exit(jmake, id, status, ...) abort
     call s:qfopen(l:local, a:jmake.name, a:jmake.qfid, v:true)
 endfunction
 
-function! jmake#run(local, name, prg, efm, ...) abort
+function! jmake#run(local, name, prog, efm, ...) abort
     if a:local
         if !exists('w:j'..a:name)
             let w:j{a:name} = s:jmake_alloc(a:name, win_getid())
@@ -175,18 +177,21 @@ function! jmake#run(local, name, prg, efm, ...) abort
         return
     endif
 
+    if empty(l:args)
+        let l:jmake.cmd = a:prog
+    elseif match(a:prog, '\$\*') >= 0
+        let l:jmake.cmd = substitute(a:prog, '\$\*', join(l:args), 'g')
+    else
+        let l:jmake.cmd = a:prog . ' ' . join(l:args)
+    endif
+    silent! let l:jmake.cmd = expandcmd(l:jmake.cmd)
+    let v:errmsg = ''
+
     execute 'silent doautocmd <nomodeline> QuickFixCmdPre' l:jmake.name
 
     if &autowrite || &autowriteall
         silent! wall
     endif
-
-    if match(a:prg, '\$\*') >= 0
-        let l:jmake.cmd = substitute(a:prg, '\$\*', join(l:args), 'g')
-    else
-        let l:jmake.cmd = a:prg..' '..join(l:args)
-    endif
-    let l:jmake.cmd = expandcmd(l:jmake.cmd)
 
     let l:what = {'nr': '$', 'id': 0, 'title': l:jmake.cmd}
     if a:local
@@ -202,7 +207,7 @@ function! jmake#run(local, name, prg, efm, ...) abort
     let l:jmake.cwd = getcwd()
 
     if !s:jmake_start(l:jmake)
-        echo 'Starting of ['..l:jmake.cmd..'] failed'
+        echo 'Starting of [' . l:jmake.cmd . '] failed'
     endif
 endfunction
 
