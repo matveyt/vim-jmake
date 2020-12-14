@@ -1,6 +1,6 @@
-" Vim plugin to run :make asynchronously
+" Vim plugin to run :make and :grep asynchronously
 " Maintainer:   matveyt
-" Last Change:  2020 Dec 13
+" Last Change:  2020 Dec 14
 " License:      VIM License
 " URL:          https://github.com/matveyt/vim-jmake
 
@@ -15,23 +15,25 @@ function s:chdir(dir) abort
     else
         let l:cd = haslocaldir() == 1 ? 'lcd' : haslocaldir() == 2 ? 'tcd' : 'cd'
     endif
+
     let l:old = getcwd()
-    execute l:cd fnameescape(a:dir)
-    return l:old
+    try | execute l:cd fnameescape(a:dir)
+    finally | return l:old
+    endtry
 endfunction
 
 function s:iconv(expr, from) abort
     if empty(a:from)
         if type(a:expr) == v:t_list
-            return a:expr
+            return copy(a:expr)
         else
-            return split(a:expr, "\n", v:true)
+            return split(a:expr, "\n", 1)
         endif
     else
         if type(a:expr) == v:t_list
             return map(copy(a:expr), {_, v -> iconv(v, a:from, &enc)})
         else
-            return split(iconv(a:expr, a:from, &enc), "\n", v:true)
+            return split(iconv(a:expr, a:from, &enc), "\n", 1)
         endif
     endif
 endfunction
@@ -69,22 +71,19 @@ function s:jmake_alloc(name, winid) abort
 endfunction
 
 function s:jmake_start(jmake) abort
-    let l:cmd = get(g:, 'jmake_no_shell') ? split(a:jmake.cmd) :
-        \ [&sh, &shcf, a:jmake.cmd]
     if has('nvim')
-        let a:jmake.job = jobstart(l:cmd, {
+        let a:jmake.job = jobstart([&sh, &shcf, a:jmake.cmd], {
             \ 'on_stdout': funcref('s:jmake_on_data', [a:jmake]),
             \ 'on_stderr': funcref('s:jmake_on_data', [a:jmake]),
             \ 'on_exit': funcref('s:jmake_on_exit', [a:jmake])
         \ })
     elseif has('job')
-        let a:jmake.job = job_start(l:cmd, {
+        let a:jmake.job = job_start([&sh, &shcf, a:jmake.cmd], {
             \ 'out_cb': funcref('s:jmake_on_data', [a:jmake]),
             \ 'err_cb': funcref('s:jmake_on_data', [a:jmake]),
             \ 'exit_cb': funcref('s:jmake_on_exit', [a:jmake])
         \ })
     endif
-
     return s:jmake_running(a:jmake)
 endfunction
 
@@ -142,7 +141,7 @@ function s:jmake_on_exit(jmake, id, status, ...) abort
         call setqflist([], 'a', l:what)
     endif
 
-    call s:qfopen(l:local, a:jmake.name, a:jmake.qfid, v:true)
+    call s:qfopen(l:local, a:jmake.name, a:jmake.qfid, 1)
 endfunction
 
 function! jmake#run(local, name, prog, efm, ...) abort
@@ -170,22 +169,19 @@ function! jmake#run(local, name, prog, efm, ...) abort
         return
     elseif get(l:args, 0) is# '?' || l:is_running
         if l:jmake.qfid > 0
-            call s:qfopen(a:local, l:jmake.name, l:jmake.qfid, v:false)
+            call s:qfopen(a:local, l:jmake.name, l:jmake.qfid, 0)
         else
             echo 'Nothing to see here... move along!'
         endif
         return
     endif
 
-    if empty(l:args)
-        let l:jmake.cmd = a:prog
-    elseif match(a:prog, '\$\*') >= 0
-        let l:jmake.cmd = substitute(a:prog, '\$\*', join(l:args), 'g')
+    if match(a:prog, '\$\*') >= 0
+        let l:args = split(substitute(a:prog, '\$\*', join(l:args), 'g'))
     else
-        let l:jmake.cmd = a:prog . ' ' . join(l:args)
+        call extend(l:args, split(a:prog), 0)
     endif
-    silent! let l:jmake.cmd = expandcmd(l:jmake.cmd)
-    let v:errmsg = ''
+    let l:jmake.cmd = join(map(l:args, {_, v -> v =~# '^[%#<]' ? expand(v) : v }))
 
     execute 'silent doautocmd <nomodeline> QuickFixCmdPre' l:jmake.name
 
@@ -205,9 +201,8 @@ function! jmake#run(local, name, prog, efm, ...) abort
     let l:jmake.efm = a:efm
     let l:jmake.enc = &makeencoding
     let l:jmake.cwd = getcwd()
-
     if !s:jmake_start(l:jmake)
-        echo 'Starting of [' . l:jmake.cmd . '] failed'
+        echo 'Starting [' . l:jmake.cmd . '] failed'
     endif
 endfunction
 
