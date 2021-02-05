@@ -1,6 +1,6 @@
 " Vim plugin to run :make and :grep asynchronously
 " Maintainer:   matveyt
-" Last Change:  2020 Dec 14
+" Last Change:  2021 Feb 05
 " License:      VIM License
 " URL:          https://github.com/matveyt/vim-jmake
 
@@ -145,21 +145,16 @@ function s:jmake_on_exit(jmake, id, status, ...) abort
 endfunction
 
 function! jmake#run(local, name, prog, efm, ...) abort
-    if a:local
-        if !exists('w:j'..a:name)
-            let w:j{a:name} = s:jmake_alloc(a:name, win_getid())
-        endif
-        let l:jmake = w:j{a:name}
-    else
-        if !exists('s:j'..a:name)
-            let s:j{a:name} = s:jmake_alloc(a:name, 0)
-        endif
-        let l:jmake = s:j{a:name}
+    let l:winid = a:local ? win_getid() : 0
+    let l:dict = a:local ? w: : s:
+    let l:varname = 'j'..a:name
+    if !has_key(l:dict, l:varname)
+        let l:dict[l:varname] = s:jmake_alloc(a:name, l:winid)
     endif
+    let l:jmake = l:dict[l:varname]
 
     let l:is_running = s:jmake_running(l:jmake)
     let l:args = filter(copy(a:000), {_, v -> !empty(v)})
-
     if get(l:args, 0) is# '!'
         if l:is_running
             call s:jmake_stop(l:jmake)
