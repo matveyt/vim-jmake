@@ -2,14 +2,12 @@
 
 This Vim plugin provides asynchcronous :Make and :Grep commands.
 
-### Download and Install
+#### Download and Install
 
-Use whatever plugin manager to pull the master branch.
+```
+$ git clone https://github.com/matveyt/vim-jmake ~/.vim/pack/manual/start/vim-jmake
+```
 
-### Usage
+#### Usage
 
-Read `:help jmake`.
-
-### License
-
-Distributed under the same terms as Vim itself. See `:help license`.
+See `:help jmake.txt`.

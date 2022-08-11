@@ -1,7 +1,7 @@
-*jmake.txt*     Asynchronous :Make and :Grep
+*jmake.txt*	Asynchronous :Make and :Grep
 
 ==============================================================================
-OVERVIEW                                                               *jmake*
+OVERVIEW							       *jmake*
 
 |jmake| is a plugin to run |'makeprg'| or 'grepprg' and populate quickfix list
 asynchronously. It was inspired by "asyncmake" by Yegappan Lakshmanan. But
@@ -9,9 +9,9 @@ asynchronously. It was inspired by "asyncmake" by Yegappan Lakshmanan. But
 |quickfix| and |location-list|.
 
 ==============================================================================
-COMMANDS                                                      *jmake-commands*
+COMMANDS						      *jmake-commands*
 
-:Make[!][?][arguments]                                                 *:Make*
+:Make[!][?][arguments]						       *:Make*
 
     Same as |:make| but runs asynchronously. The results are added to a
     quickfix list.
@@ -21,7 +21,7 @@ COMMANDS                                                      *jmake-commands*
 
     See also |'makeprg'|, |'errorformat'| and |'makeencoding'|.
 
-:Grep[!][?][arguments]                                                 *:Grep*
+:Grep[!][?][arguments]						       *:Grep*
 
     Same as |:grep| but runs asynchronously. The results are added to a
     quickfix list.
@@ -31,13 +31,13 @@ COMMANDS                                                      *jmake-commands*
 
     See also |'grepprg'|, |'grepformat'| and |'makeencoding'|.
 
-:Lmake[!][?][arguments]                                               *:Lmake*
+:Lmake[!][?][arguments]						      *:Lmake*
 
-    Same as |:Make| but uses location list instead of a quickfix list.
+    Same as |:Make| but uses a location list instead of a quickfix list.
 
-:Lgrep[!][?][arguments]                                               *:Lgrep*
+:Lgrep[!][?][arguments]						      *:Lgrep*
 
-    Same as |:Grep| but uses location list instead of a quickfix list.
+    Same as |:Grep| but uses a location list instead of a quickfix list.
 
 ==============================================================================
  vim:tw=78:ts=8:noet:ft=help:norl:
