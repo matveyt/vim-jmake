@@ -1,6 +1,6 @@
 " Vim plugin to run :make and :grep asynchronously
 " Maintainer:   matveyt
-" Last Change:  2021 Feb 05
+" Last Change:  2026 Jun 17
 " License:      VIM License
 " URL:          https://github.com/matveyt/vim-jmake
 
@@ -176,7 +176,7 @@ function! jmake#run(local, name, prog, efm, ...) abort
     else
         call extend(l:args, split(a:prog), 0)
     endif
-    let l:jmake.cmd = join(map(l:args, {_, v -> v =~# '^[%#<]' ? expand(v) : v }))
+    let l:jmake.cmd = join(map(l:args, {_, v -> expandcmd(v) }))
 
     execute 'silent doautocmd <nomodeline> QuickFixCmdPre' l:jmake.name
 
